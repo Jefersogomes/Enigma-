@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Enigma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ddd2b8;
+    --panel: #efe4cb;
+    --panel-2: #e3d6b6;
+    --brass: #8a6a1f;
+    --brass-bright: #6f5417;
+    --patina: #3f6358;
+    --text: #241f16;
+    --text-dim: #5b4f3a;
+    --border: #c7b78f;
+    --lamp: #a8660f;
+    --danger: #8f3a32;
+    --input-bg: #fbf6e8;
+    --font-display: 'Special Elite', 'Courier New', ui-monospace, monospace;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17130d;
+      --panel: #241d14;
+      --panel-2: #2b2217;
+      --brass: #c19a3e;
+      --brass-bright: #e0bc63;
+      --patina: #5c8a7b;
+      --text: #ecdfc0;
+      --text-dim: #ab9a78;
+      --border: #453a26;
+      --lamp: #e0a53f;
+      --danger: #d98077;
+      --input-bg: #1c160e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17130d;
+    --panel: #241d14;
+    --panel-2: #2b2217;
+    --brass: #c19a3e;
+    --brass-bright: #e0bc63;
+    --patina: #5c8a7b;
+    --text: #ecdfc0;
+    --text-dim: #ab9a78;
+    --border: #453a26;
+    --lamp: #e0a53f;
+    --danger: #d98077;
+    --input-bg: #1c160e;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 1.1rem 1rem 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+  header.nameplate {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem 1.1rem;
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    text-align: left;
+  }
+  header.nameplate h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    letter-spacing: 0.06em;
+    margin: 0 0 0.25rem;
+    color: var(--brass-bright);
+  }
+  header.nameplate p {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 0.92rem;
+  }
+
+  nav.tabs {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  nav.tabs button {
+    flex: 1;
+    padding: 0.7rem;
+    background: var(--panel-2);
+    color: var(--text-dim);
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.98rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  nav.tabs button + button { border-left: 1px solid var(--border); }
+  nav.tabs button.active {
+    background: var(--brass);
+    color: #1c1710;
+  }
+
+  section.card {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem;
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  label.field-label {
+    display: block;
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  textarea, input[type="text"] {
+    width: 100%;
+    font-size: 16px;
+    font-family: var(--font-body);
+    color: var(--text);
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.6rem 0.7rem;
+    resize: vertical;
+  }
+  textarea { min-height: 4.5rem; line-height: 1.5; }
+  .output-box textarea, .output-box input {
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
+    color: var(--lamp);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .just-updated { animation: glow 0.5s ease-out; }
+  }
+  @keyframes glow {
+    0% { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08), 0 0 0px var(--lamp); }
+    35% { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08), 0 0 10px var(--lamp); }
+    100% { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08), 0 0 0px var(--lamp); }
+  }
+
+  .row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+  .row.between { justify-content: space-between; }
+
+  button.btn {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.55rem 0.9rem;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    cursor: pointer;
+  }
+  button.btn.primary {
+    background: var(--brass);
+    color: #1c1710;
+    border-color: var(--brass-bright);
+  }
+  button.btn.small { padding: 0.4rem 0.6rem; font-size: 0.82rem; }
+
+  .rotor-row { display: flex; gap: 0.5rem; }
+  .rotor-window {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel-2);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.18);
+    padding: 0.3rem;
+    width: 3.4rem;
+  }
+  .rotor-window button {
+    border: none;
+    background: transparent;
+    color: var(--brass);
+    font-size: 1rem;
+    padding: 0.15rem 0;
+    cursor: pointer;
+    width: 100%;
+  }
+  .rotor-letter {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--text);
+    background: var(--input-bg);
+    width: 100%;
+    text-align: center;
+    border-radius: 2px;
+    padding: 0.15rem 0;
+  }
+
+  .info-line { font-size: 0.85rem; color: var(--text-dim); }
+  .error-line { font-size: 0.85rem; color: var(--danger); min-height: 1.1em; }
+
+  details.toggle-panel { border: 1px solid var(--border); border-radius: 4px; background: var(--panel); }
+  details.toggle-panel > summary {
+    padding: 0.8rem 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+  }
+  details.toggle-panel > summary::-webkit-details-marker { display: none; }
+  details.toggle-panel > summary::before { content: "▸ "; color: var(--brass); }
+  details.toggle-panel[open] > summary::before { content: "▾ "; }
+  details.toggle-panel > .panel-body {
+    padding: 0 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.9rem;
+  }
+
+  .settings-grid { display: flex; gap: 0.6rem; }
+  .settings-grid > div { flex: 1; }
+  select {
+    width: 100%;
+    font-size: 16px;
+    padding: 0.5rem;
+    background: var(--input-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: var(--font-body);
+  }
+
+  .plugboard-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.35rem;
+  }
+  .plug-btn {
+    aspect-ratio: 1;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--panel-2);
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .plug-btn.pending { outline: 2px solid var(--brass); }
+
+  .signal-path {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+  .signal-path .chip {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.25rem 0.45rem;
+    background: var(--panel-2);
+  }
+
+  p.help-text { font-size: 0.92rem; line-height: 1.55; color: var(--text); margin: 0; }
+  h3.help-heading { font-size: 0.95rem; margin: 0 0 0.35rem; color: var(--brass-bright); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="nameplate">
+    <h1>Enigma</h1>
+    <p>simulador de cifra por rotores, inspirado na máquina alemã da Segunda Guerra</p>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="cifrar" class="active" type="button">Cifrar</button>
+    <button data-tab="decifrar" type="button">Decifrar</button>
+  </nav>
+
+  <section class="card" id="tab-cifrar">
+    <div>
+      <label class="field-label">Posição inicial dos rotores</label>
+      <div class="row">
+        <div class="rotor-row" id="encode-pos-widget"></div>
+        <button class="btn small" id="dice-btn" type="button">🎲 Sortear</button>
+      </div>
+    </div>
+    <div>
+      <label class="field-label" for="cifrar-input">Sua mensagem</label>
+      <textarea id="cifrar-input" placeholder="Escreva aqui..."></textarea>
+    </div>
+    <div class="output-box">
+      <label class="field-label" for="cifrar-output">Mensagem cifrada</label>
+      <div class="row">
+        <textarea id="cifrar-output" readonly style="flex:1"></textarea>
+      </div>
+      <div class="row" style="margin-top:0.5rem">
+        <button class="btn" id="copy-cifrar" type="button">Copiar</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="tab-decifrar" hidden>
+    <div>
+      <label class="field-label" for="decifrar-input">Cole a mensagem recebida</label>
+      <textarea id="decifrar-input" placeholder="[XYZ] mensagem cifrada..."></textarea>
+      <p class="info-line" id="decifrar-info"></p>
+    </div>
+    <div>
+      <label class="field-label">Posição manual (usada se nenhum indicador for encontrado)</label>
+      <div class="rotor-row" id="decode-pos-widget"></div>
+    </div>
+    <div class="output-box">
+      <label class="field-label" for="decifrar-output">Mensagem decifrada</label>
+      <textarea id="decifrar-output" readonly></textarea>
+    </div>
+  </section>
+
+  <details class="toggle-panel" id="settings-panel">
+    <summary>Configurações</summary>
+    <div class="panel-body">
+      <div>
+        <label class="field-label">Ordem dos rotores</label>
+        <div class="settings-grid">
+          <div><select id="rotor-select-0"></select></div>
+          <div><select id="rotor-select-1"></select></div>
+          <div><select id="rotor-select-2"></select></div>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Ajuste dos anéis</label>
+        <div class="settings-grid">
+          <div><select id="ring-select-0"></select></div>
+          <div><select id="ring-select-1"></select></div>
+          <div><select id="ring-select-2"></select></div>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Refletor</label>
+        <div class="row">
+          <label class="row"><input type="radio" name="reflector" value="B"> B</label>
+          <label class="row"><input type="radio" name="reflector" value="C"> C</label>
+        </div>
+      </div>
+      <div>
+        <div class="row between">
+          <label class="field-label" style="margin:0">Plugboard</label>
+          <span class="info-line" id="plugboard-count"></span>
+        </div>
+        <div class="plugboard-grid" id="plugboard-grid"></div>
+        <div class="row" style="margin-top:0.5rem">
+          <button class="btn small" id="clear-plugboard" type="button">Limpar plugboard</button>
+        </div>
+      </div>
+      <div class="row">
+        <label class="row"><input type="checkbox" id="group5-checkbox"> Agrupar cifra em blocos de 5</label>
+      </div>
+      <div>
+        <label class="field-label">Código de configuração</label>
+        <div class="row">
+          <input type="text" id="code-display" readonly style="flex:1">
+          <button class="btn small" id="copy-code" type="button">Copiar</button>
+        </div>
+      </div>
+      <div>
+        <label class="field-label" for="code-input">Aplicar código de outra pessoa</label>
+        <div class="row">
+          <input type="text" id="code-input" placeholder="ex: 153-AAB-B-AB,CD" style="flex:1">
+          <button class="btn small" id="apply-code-btn" type="button">Aplicar</button>
+        </div>
+        <p class="error-line" id="code-error"></p>
+      </div>
+    </div>
+  </details>
+
+  <details class="toggle-panel">
+    <summary>Como funciona</summary>
+    <div class="panel-body">
+      <div>
+        <h3 class="help-heading">A máquina original</h3>
+        <p class="help-text">Esse simulador é inspirado na Enigma, usada pela Alemanha para cifrar mensagens de rádio. Um plugboard troca pares de letras, três rotores giram a cada tecla digitada e um refletor manda o sinal de volta pelos rotores — a mesma lógica do aparelho original, incluindo o comportamento de duplo passo de um dos rotores.</p>
+      </div>
+      <div class="signal-path">
+        <span class="chip">Tecla</span>→<span class="chip">Plugboard</span>→<span class="chip">Rotor 3</span>→<span class="chip">Rotor 2</span>→<span class="chip">Rotor 1</span>→<span class="chip">Refletor</span>→<span class="chip">Rotor 1</span>→<span class="chip">Rotor 2</span>→<span class="chip">Rotor 3</span>→<span class="chip">Plugboard</span>→<span class="chip">Lâmpada</span>
+      </div>
+      <div>
+        <h3 class="help-heading">Sobre segurança</h3>
+        <p class="help-text">A Enigma foi quebrada pelos Aliados ainda durante a guerra, com Alan Turing e a equipe de Bletchley Park à frente. Hoje ela não protege nada de verdade — é ótima para jogos, charadas e curiosidade histórica, não para esconder informação sensível.</p>
+      </div>
+      <div>
+        <h3 class="help-heading">Para trocar mensagens com alguém</h3>
+        <p class="help-text">Combinem a mesma configuração (ordem dos rotores, anéis, refletor e plugboard): copie o código de configuração aqui e mande para a outra pessoa colar no aparelho dela. Depois, quem cifra sorteia ou escolhe uma posição inicial, escreve a mensagem e envia o resultado por qualquer aplicativo de mensagens — a posição já vai marcada no início do texto, entre colchetes. Quem recebe cola o texto na aba Decifrar.</p>
+      </div>
+      <div>
+        <h3 class="help-heading">Detalhe técnico</h3>
+        <p class="help-text">Só letras são cifradas: espaços, números e pontuação são removidos da mensagem, como acontecia na máquina original, que também não tinha essas teclas.</p>
+      </div>
+    </div>
+  </details>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const ROTORS = {
+    I:   { wiring: "EKMFLGDQVZNTOWYHXUSPAIBRCJ", notch: "Q" },
+    II:  { wiring: "AJDKSIRUXBLHWTMCQGZNPYFVOE", notch: "E" },
+    III: { wiring: "BDFHJLCPRTXVZNYEIWGAKMUSQO", notch: "V" },
+    IV:  { wiring: "ESOVPZJAYQUIRHXLNFTGKDCMWB", notch: "J" },
+    V:   { wiring: "VZBRGITYUPSDNHLXAWMJQOFECK", notch: "Z" },
+  };
+  const REFLECTORS = {
+    B: "YRUHQSLDPXNGOKMIEBFZCWVJAT",
+    C: "FVPJIAOYEDRZXWGCTKUQSBNMHL",
+  };
+  const ROMAN = ["I","II","III","IV","V"];
+  const PAIR_COLORS = ["#c76b4d","#4f8a5f","#4f6fab","#b08d3e","#9a5f8c","#3f8a8a","#a8763f","#6f5fab","#7f9a3a","#ab5f70"];
+
+  function charToNum(c){ return c.charCodeAt(0)-65; }
+  function numToChar(n){ return String.fromCharCode(((n%26)+26)%26+65); }
+
+  function rotorForward(c,wiring,pos,ring){
+    const shifted=((c+pos-ring)%26+26)%26;
+    const wired=charToNum(wiring[shifted]);
+    return ((wired-pos+ring)%26+26)%26;
+  }
+  function rotorBackward(c,wiring,pos,ring){
+    const shifted=((c+pos-ring)%26+26)%26;
+    const wired=wiring.indexOf(numToChar(shifted));
+    return ((wired-pos+ring)%26+26)%26;
+  }
+  function stepRotors(positions,notches){
+    let [left,middle,right]=positions;
+    const rightAtNotch = right===notches[2];
+    const middleAtNotch = middle===notches[1];
+    let nl=left, nm=middle, nr=right;
+    if(middleAtNotch){ nl=(left+1)%26; nm=(middle+1)%26; }
+    else if(rightAtNotch){ nm=(middle+1)%26; }
+    nr=(right+1)%26;
+    return [nl,nm,nr];
+  }
+
+  function stripToLetters(str){
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/[^A-Z]/g,"");
+  }
+
+  let state = {
+    rotorOrder: [1,2,3],
+    rings: [0,0,0],
+    reflector: "B",
+    plugboard: [],
+    groupBy5: true,
+  };
+  let encodePos = [0,0,0];
+  let decodeManualPos = [0,0,0];
+  let pendingPlugLetter = null;
+
+  function loadState(){
+    try {
+      const raw = localStorage.getItem("enigma_state_v1");
+      if (raw){
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.rotorOrder) && parsed.rotorOrder.length===3) state.rotorOrder = parsed.rotorOrder;
+        if (Array.isArray(parsed.rings) && parsed.rings.length===3) state.rings = parsed.rings;
+        if (parsed.reflector==="B" || parsed.reflector==="C") state.reflector = parsed.reflector;
+        if (Array.isArray(parsed.plugboard)) state.plugboard = parsed.plugboard;
+        if (typeof parsed.groupBy5 === "boolean") state.groupBy5 = parsed.groupBy5;
+      }
+    } catch(e) { /* usa padrão */ }
+  }
+  function saveState(){
+    try { localStorage.setItem("enigma_state_v1", JSON.stringify(state)); } catch(e) { /* ignora */ }
+  }
+
+  function runCipher(letters, startPosArr){
+    const rotorNames = state.rotorOrder.map(n=>ROMAN[n-1]);
+    const rotors = rotorNames.map(n=>ROTORS[n]);
+    const notches = rotors.map(r=>charToNum(r.notch));
+    const rings = state.rings.slice();
+    let positions = startPosArr.slice();
+    const reflector = REFLECTORS[state.reflector];
+    const plugboard=[...Array(26).keys()];
+    for(const pair of state.plugboard){
+      const a=charToNum(pair[0]), b=charToNum(pair[1]);
+      plugboard[a]=b; plugboard[b]=a;
+    }
+    let out="";
+    for(const ch of letters){
+      positions = stepRotors(positions, notches);
+      let c = charToNum(ch);
+      c = plugboard[c];
+      c = rotorForward(c, rotors[2].wiring, positions[2], rings[2]);
+      c = rotorForward(c, rotors[1].wiring, positions[1], rings[1]);
+      c = rotorForward(c, rotors[0].wiring, positions[0], rings[0]);
+      c = charToNum(reflector[c]);
+      c = rotorBackward(c, rotors[0].wiring, positions[0], rings[0]);
+      c = rotorBackward(c, rotors[1].wiring, positions[1], rings[1]);
+      c = rotorBackward(c, rotors[2].wiring, positions[2], rings[2]);
+      c = plugboard[c];
+      out += numToChar(c);
+    }
+    return out;
+  }
+
+  function flashUpdated(el){
+    el.classList.remove("just-updated");
+    void el.offsetWidth;
+    el.classList.add("just-updated");
+  }
+
+  function encodeMessage(){
+    const inputEl = document.getElementById("cifrar-input");
+    const outputEl = document.getElementById("cifrar-output");
+    const letters = stripToLetters(inputEl.value);
+    if (!letters.length){ outputEl.value=""; return; }
+    const cipherLetters = runCipher(letters, encodePos);
+    let formatted = cipherLetters;
+    if (state.groupBy5){
+      formatted = formatted.match(/.{1,5}/g).join(" ");
+    }
+    const posStr = encodePos.map(numToChar).join("");
+    outputEl.value = "[" + posStr + "] " + formatted;
+    flashUpdated(outputEl);
+  }
+
+  function decodeMessage(){
+    const inputEl = document.getElementById("decifrar-input");
+    const outputEl = document.getElementById("decifrar-output");
+    const infoEl = document.getElementById("decifrar-info");
+    const raw = inputEl.value;
+    if (!raw.trim()){ outputEl.value=""; infoEl.textContent=""; return; }
+    const match = raw.match(/\[\s*([A-Za-z]{3})\s*\]([\s\S]*)/);
+    let posArr, cipherPart;
+    if (match){
+      posArr = match[1].toUpperCase().split("").map(charToNum);
+      cipherPart = match[2];
+      infoEl.textContent = "Posição detectada automaticamente: " + match[1].toUpperCase();
+    } else {
+      posArr = decodeManualPos;
+      cipherPart = raw;
+      infoEl.textContent = "Nenhum indicador [XYZ] encontrado — usando a posição manual abaixo.";
+    }
+    const letters = stripToLetters(cipherPart);
+    outputEl.value = runCipher(letters, posArr);
+    flashUpdated(outputEl);
+  }
+
+  function buildPosWidget(containerId, posArray, onChange){
+    const el = document.getElementById(containerId);
+    el.innerHTML = "";
+    for (let i=0;i<3;i++){
+      const box = document.createElement("div");
+      box.className = "rotor-window";
+      const up = document.createElement("button");
+      up.type="button"; up.textContent="▲";
+      const disp = document.createElement("div");
+      disp.className = "rotor-letter";
+      disp.textContent = numToChar(posArray[i]);
+      const down = document.createElement("button");
+      down.type="button"; down.textContent="▼";
+      up.addEventListener("click", ()=>{
+        posArray[i] = (posArray[i]+1)%26;
+        disp.textContent = numToChar(posArray[i]);
+        onChange();
+      });
+      down.addEventListener("click", ()=>{
+        posArray[i] = (posArray[i]+25)%26;
+        disp.textContent = numToChar(posArray[i]);
+        onChange();
+      });
+      box.appendChild(up); box.appendChild(disp); box.appendChild(down);
+      el.appendChild(box);
+    }
+  }
+
+  function populateSelects(){
+    for (let i=0;i<3;i++){
+      const rs = document.getElementById("rotor-select-"+i);
+      rs.innerHTML = ROMAN.map((r,idx)=>'<option value="'+(idx+1)+'">'+r+"</option>").join("");
+      const gs = document.getElementById("ring-select-"+i);
+      let opts = "";
+      for (let n=0;n<26;n++){ opts += '<option value="'+n+'">'+numToChar(n)+"</option>"; }
+      gs.innerHTML = opts;
+    }
+  }
+
+  function renderPlugboard(){
+    const grid = document.getElementById("plugboard-grid");
+    grid.innerHTML = "";
+    for (let i=0;i<26;i++){
+      const letter = numToChar(i);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = letter;
+      btn.className = "plug-btn";
+      const pairIdx = state.plugboard.findIndex(p=>p[0]===letter||p[1]===letter);
+      if (pairIdx>=0){
+        btn.style.background = PAIR_COLORS[pairIdx % PAIR_COLORS.length];
+        btn.style.color = "#fff";
+      }
+      if (letter===pendingPlugLetter) btn.classList.add("pending");
+      btn.addEventListener("click", ()=>handlePlugClick(letter));
+      grid.appendChild(btn);
+    }
+    document.getElementById("plugboard-count").textContent = state.plugboard.length + "/10 pares";
+  }
+
+  function handlePlugClick(letter){
+    const idx = state.plugboard.findIndex(p=>p[0]===letter||p[1]===letter);
+    if (idx>=0){
+      state.plugboard.splice(idx,1);
+      pendingPlugLetter = null;
+    } else if (pendingPlugLetter===null){
+      pendingPlugLetter = letter;
+    } else if (pendingPlugLetter===letter){
+      pendingPlugLetter = null;
+    } else {
+      if (state.plugboard.length<10){
+        state.plugboard.push([pendingPlugLetter, letter]);
+      }
+      pendingPlugLetter = null;
+    }
+    saveState();
+    renderPlugboard();
+    updateCodeDisplay();
+    encodeMessage();
+    decodeMessage();
+  }
+
+  function generateCode(){
+    const order = state.rotorOrder.join("");
+    const rings = state.rings.map(numToChar).join("");
+    const refl = state.reflector;
+    const plug = state.plugboard.map(p=>p.join("")).join(",");
+    return order+"-"+rings+"-"+refl+"-"+plug;
+  }
+
+  function updateCodeDisplay(){
+    document.getElementById("code-display").value = generateCode();
+  }
+
+  function applyCode(code){
+    const errEl = document.getElementById("code-error");
+    errEl.textContent = "";
+    const parts = code.trim().split("-");
+    if (parts.length<3){ errEl.textContent="Código incompleto. Use o formato ordem-anéis-refletor-plugboard."; return; }
+    const order = parts[0], rings = parts[1], refl = parts[2], plug = parts[3]||"";
+    if (!/^[1-5]{3}$/.test(order)){ errEl.textContent="Ordem de rotores inválida. Use 3 números de 1 a 5."; return; }
+    if (!/^[A-Za-z]{3}$/.test(rings)){ errEl.textContent="Anéis inválidos. Use 3 letras de A a Z."; return; }
+    if (!/^[BCbc]$/.test(refl)){ errEl.textContent="Refletor inválido. Use B ou C."; return; }
+    let plugPairs = [];
+    if (plug.trim()){
+      const rawPairs = plug.split(",").map(s=>s.trim().toUpperCase()).filter(Boolean);
+      if (rawPairs.length>10){ errEl.textContent="Plugboard tem mais de 10 pares."; return; }
+      const used = new Set();
+      for (const p of rawPairs){
+        if (!/^[A-Z]{2}$/.test(p) || p[0]===p[1]){ errEl.textContent="Plugboard inválido. Cada par precisa de 2 letras diferentes."; return; }
+        if (used.has(p[0]) || used.has(p[1])){ errEl.textContent="Letra repetida no plugboard: uma letra só pode estar em um par."; return; }
+        used.add(p[0]); used.add(p[1]);
+      }
+      plugPairs = rawPairs.map(p=>[p[0],p[1]]);
+    }
+    state.rotorOrder = order.split("").map(Number);
+    state.rings = rings.toUpperCase().split("").map(charToNum);
+    state.reflector = refl.toUpperCase();
+    state.plugboard = plugPairs;
+    saveState();
+    renderSettingsPanel();
+    encodeMessage();
+    decodeMessage();
+  }
+
+  function renderSettingsPanel(){
+    for (let i=0;i<3;i++){
+      document.getElementById("rotor-select-"+i).value = state.rotorOrder[i];
+      document.getElementById("ring-select-"+i).value = state.rings[i];
+    }
+    const reflInput = document.querySelector('input[name="reflector"][value="'+state.reflector+'"]');
+    if (reflInput) reflInput.checked = true;
+    document.getElementById("group5-checkbox").checked = state.groupBy5;
+    renderPlugboard();
+    updateCodeDisplay();
+  }
+
+  async function copyFromField(fieldId){
+    const el = document.getElementById(fieldId);
+    try {
+      await navigator.clipboard.writeText(el.value);
+    } catch(e){
+      el.select();
+    }
+  }
+
+  function init(){
+    loadState();
+    for (let i=0;i<3;i++) encodePos[i] = Math.floor(Math.random()*26);
+    populateSelects();
+    buildPosWidget("encode-pos-widget", encodePos, encodeMessage);
+    buildPosWidget("decode-pos-widget", decodeManualPos, decodeMessage);
+    renderSettingsPanel();
+
+    document.querySelectorAll(".tabs button").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        const target = btn.dataset.tab;
+        document.getElementById("tab-cifrar").hidden = target!=="cifrar";
+        document.getElementById("tab-decifrar").hidden = target!=="decifrar";
+      });
+    });
+
+    document.getElementById("cifrar-input").addEventListener("input", encodeMessage);
+    document.getElementById("decifrar-input").addEventListener("input", decodeMessage);
+    document.getElementById("copy-cifrar").addEventListener("click", ()=>copyFromField("cifrar-output"));
+    document.getElementById("copy-code").addEventListener("click", ()=>copyFromField("code-display"));
+    document.getElementById("dice-btn").addEventListener("click", ()=>{
+      for (let i=0;i<3;i++) encodePos[i] = Math.floor(Math.random()*26);
+      buildPosWidget("encode-pos-widget", encodePos, encodeMessage);
+      encodeMessage();
+    });
+    document.getElementById("clear-plugboard").addEventListener("click", ()=>{
+      state.plugboard = [];
+      pendingPlugLetter = null;
+      saveState();
+      renderPlugboard();
+      updateCodeDisplay();
+      encodeMessage();
+      decodeMessage();
+    });
+    document.getElementById("apply-code-btn").addEventListener("click", ()=>{
+      applyCode(document.getElementById("code-input").value);
+    });
+
+    for (let i=0;i<3;i++){
+      document.getElementById("rotor-select-"+i).addEventListener("change", e=>{
+        state.rotorOrder[i] = parseInt(e.target.value,10);
+        saveState(); updateCodeDisplay(); encodeMessage(); decodeMessage();
+      });
+      document.getElementById("ring-select-"+i).addEventListener("change", e=>{
+        state.rings[i] = parseInt(e.target.value,10);
+        saveState(); updateCodeDisplay(); encodeMessage(); decodeMessage();
+      });
+    }
+    document.querySelectorAll('input[name="reflector"]').forEach(r=>{
+      r.addEventListener("change", e=>{
+        if (e.target.checked){
+          state.reflector = e.target.value;
+          saveState(); updateCodeDisplay(); encodeMessage(); decodeMessage();
+        }
+      });
+    });
+    document.getElementById("group5-checkbox").addEventListener("change", e=>{
+      state.groupBy5 = e.target.checked;
+      saveState(); encodeMessage();
+    });
+
+    encodeMessage();
+    decodeMessage();
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+</body>
+</html>
